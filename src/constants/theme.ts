@@ -18,6 +18,24 @@ export const Colors = {
 		warningSubtle: '#FFF8EC',
 		success: '#34C759',
 		successSubtle: '#EDFBF1',
+		// State pills (matches web widget state-open / state-wip / state-done)
+		stateOpenBg: '#e0f2fe',
+		stateOpenText: '#0369a1',
+		stateWipBg: '#fef9c3',
+		stateWipText: '#854d0e',
+		stateDoneBg: '#dcfce7',
+		stateDoneText: '#15803d',
+		// Flag badges (at-risk, blocked, needs-help — amber)
+		flagBg: '#ffd699',
+		flagText: '#9a3412',
+		// Card accent bar
+		accentBar: '#22c55e',
+		accentBarDanger: '#ef4444',
+		// Status ok / warn chips
+		okBg: '#ecfdf5',
+		okText: '#047857',
+		warnBg: '#fff7ed',
+		warnText: '#9a3412',
 	},
 	dark: {
 		text: '#FFFFFF',
@@ -34,6 +52,24 @@ export const Colors = {
 		warningSubtle: '#3A2A10',
 		success: '#30D158',
 		successSubtle: '#0D2E1A',
+		// State pills
+		stateOpenBg: '#0c2a3a',
+		stateOpenText: '#7dd3fc',
+		stateWipBg: '#2d2300',
+		stateWipText: '#fde68a',
+		stateDoneBg: '#0d2e1a',
+		stateDoneText: '#4ade80',
+		// Flag badges
+		flagBg: '#4a2800',
+		flagText: '#fb923c',
+		// Card accent bar
+		accentBar: '#16a34a',
+		accentBarDanger: '#b91c1c',
+		// Status ok / warn chips
+		okBg: '#0d2e1a',
+		okText: '#4ade80',
+		warnBg: '#3a2508',
+		warnText: '#fb923c',
 	},
 } as const;
 

@@ -1,0 +1,462 @@
+.pod-daily-status {
+	font-size: 14px;
+}
+.pod-daily-status .header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+	margin-bottom: 16px;
+}
+.pod-daily-status .eyebrow {
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-weight: 700;
+	opacity: 0.6;
+	font-size: 12px;
+}
+.pod-daily-status .title {
+	margin: 4px 0 2px;
+	font-weight: 800;
+}
+.pod-daily-status .subtle {
+	color: #667085;
+}
+
+.btn-rounded {
+	border-radius: 999px;
+	padding: 8px 14px;
+}
+.badge {
+	border-radius: 999px;
+	padding: 6px 10px;
+	font-weight: 600;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+.badge.ok {
+	background: #ecfdf5;
+	color: #047857;
+}
+.badge.warn {
+	background: #fff7ed;
+	color: #9a3412;
+}
+
+.empty {
+	margin-top: 16px;
+}
+.empty-card {
+	border: 1px dashed #d0d5dd;
+	border-radius: 16px;
+	padding: 28px;
+	text-align: center;
+	color: #667085;
+}
+.empty-card .btn {
+	margin-top: 8px;
+}
+
+.cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+	gap: 14px;
+	margin-top: 12px;
+}
+
+.line-card {
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 16px;
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	cursor: pointer;
+	transition:
+		box-shadow 0.15s ease,
+		transform 0.05s ease;
+	position: relative; /* for underline */
+}
+.line-card:hover {
+	box-shadow: 0 4px 14px rgba(16, 24, 40, 0.1);
+	transform: translateY(-1px);
+}
+.line-card .line-header {
+	padding: 12px 14px;
+	border-bottom: 1px solid #f1f5f9;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+}
+.line-card .line-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.pill {
+	border-radius: 999px;
+	padding: 2px 8px;
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #111;
+	background: #eef2ff;
+}
+.state-open {
+	background: #e0f2fe;
+}
+.state-wip {
+	background: #fef9c3;
+}
+.state-done {
+	background: #dcfce7;
+}
+.free-badge {
+	background: #f1f5f9;
+	color: #0f172a;
+	border-radius: 999px;
+	padding: 2px 8px;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.icon-btn {
+	border: none;
+	background: transparent;
+	padding: 6px;
+	border-radius: 8px;
+}
+.icon-btn:hover {
+	background: #f2f4f7;
+}
+
+.line-card .line-body {
+	padding: 12px 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.line-card .kv span {
+	font-weight: 700;
+	display: block;
+	margin-bottom: 2px;
+	color: #111827;
+}
+.line-card .kv p {
+	margin: 0;
+	color: #334155;
+	white-space: pre-line;
+}
+.line-card .meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	color: #475569;
+	font-size: 12px;
+	margin-top: 2px;
+}
+
+.pod-modal .modal-content {
+	border-radius: 16px;
+}
+.form-grid .form-row {
+	display: flex;
+	gap: 12px;
+}
+.form-grid .half {
+	flex: 1;
+}
+.form-grid .third {
+	flex: 1;
+}
+.form-grid .toggle input {
+	margin-right: 8px;
+}
+
+.no-task-toggle {
+	margin-top: 8px;
+}
+.no-task-toggle .muted {
+	color: #64748b;
+	font-size: 12px;
+	margin-left: 4px;
+}
+
+.line-card.add-card {
+	border: 2px dashed #d0d5dd;
+	background: #fcfcfd;
+	box-shadow: none;
+	align-items: center;
+	justify-content: center;
+	transition:
+		border-color 0.15s ease,
+		background 0.15s ease,
+		transform 0.05s ease;
+}
+.line-card.add-card:hover {
+	border-color: #94a3b8;
+	background: #f8fafc;
+	transform: translateY(-1px);
+}
+.add-card-inner {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 24px;
+}
+.add-plus {
+	width: 36px;
+	height: 36px;
+	line-height: 36px;
+	border-radius: 999px;
+	border: 1px solid #cbd5e1;
+	text-align: center;
+	font-weight: 800;
+	font-size: 22px;
+	color: #0f172a;
+	background: #fff;
+	flex: 0 0 36px;
+}
+.add-text .add-title {
+	font-weight: 700;
+	color: #0f172a;
+}
+.add-text .add-hint {
+	font-size: 12px;
+	color: #64748b;
+}
+
+.blocked-deps {
+	margin-top: 8px;
+	padding: 8px 10px;
+	border-left: 3px solid #f59e0b;
+	background: #fff7ed;
+	border-radius: 6px;
+}
+.blocked-deps .dep-item {
+	margin-bottom: 6px;
+}
+.blocked-deps .dep-item:last-child {
+	margin-bottom: 0;
+}
+
+.has-error .form-control {
+	border-color: #dc2626;
+}
+.has-error .help-block {
+	color: #dc2626;
+}
+.req {
+	color: #dc2626;
+	margin-left: 2px;
+}
+
+.status-header {
+	margin-bottom: 1rem;
+}
+.status-header .greeting {
+	font-weight: 600;
+	color: #1e293b;
+	margin-bottom: 0.2rem;
+	font-size: 5rem;
+}
+.status-header .date {
+	color: #64748b;
+	font-size: 3rem;
+}
+
+/* Red "Needs information" badge */
+.need-badge {
+	background: #fee2e2;
+	color: #991b1b;
+	border: 1px solid #fecaca;
+	border-radius: 999px;
+	padding: 2px 8px;
+	font-size: 12px;
+	font-weight: 700;
+	margin-left: 6px;
+}
+
+.info-badge {
+	background: #ffd699;
+	color: #991b1b;
+	border: 1px solid #fecaca;
+	border-radius: 999px;
+	padding: 2px 8px;
+	font-size: 12px;
+	font-weight: 700;
+	margin-left: 6px;
+}
+
+/* Bottom accent bar (green by default, red when needs-info) */
+.line-card::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 6px;
+	border-bottom-left-radius: inherit;
+	border-bottom-right-radius: inherit;
+	pointer-events: none;
+	transition: background-color 0.3s ease;
+	background-color: #22c55e;
+}
+.line-card.needs-info::after {
+	background-color: #ef4444;
+}
+/* no underline on add card */
+.line-card.add-line-card::after {
+	display: none;
+}
+
+/* Pin below the Service Portal header (adjust top as needed for your theme) */
+.pod-toast-wrap {
+	position: fixed;
+	top: 72px; /* <-- move down so it doesn't cover the header */
+	right: 20px;
+	z-index: 999; /* high, but under any global modals */
+	pointer-events: none;
+}
+
+/* Base toast */
+.pod-toast {
+	pointer-events: auto;
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+
+	min-width: 280px;
+	max-width: 480px;
+	padding: 10px 12px;
+
+	border-radius: 10px;
+	border: 1px solid rgba(0, 0, 0, 0.06);
+	box-shadow:
+		0 8px 24px rgba(15, 23, 42, 0.1),
+		0 2px 6px rgba(15, 23, 42, 0.06);
+
+	background: #ffffff; /* base, overridden by variants */
+	animation: pod-toast-in 0.18s ease-out;
+}
+
+@keyframes pod-toast-in {
+	from {
+		opacity: 0;
+		transform: translateY(-6px) translateX(6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) translateX(0);
+	}
+}
+
+/* Success variant (soft green, like your screenshot) */
+.pod-toast--success {
+	background: #f0fdf4; /* green-50 */
+	border-color: #bbf7d0; /* green-200 */
+	color: #065f46; /* green-800 text */
+}
+.pod-toast--success .fa {
+	margin-top: 2px;
+	font-size: 16px;
+	color: #10b981; /* green-500 icon */
+}
+
+/* Content layout */
+.pod-toast-body {
+	flex: 1;
+	min-width: 0;
+}
+.pod-toast-title {
+	font-weight: 700;
+	font-size: 20px;
+	line-height: 1.2;
+	margin-bottom: 2px;
+}
+.pod-toast-text {
+	font-size: 16px;
+	line-height: 1.25;
+	opacity: 0.95;
+	word-break: break-word;
+}
+
+/* Close (×) */
+.pod-toast-close {
+	border: 0;
+	background: transparent;
+	color: #065f46;
+	font-size: 18px;
+	line-height: 1;
+	padding: 0 4px;
+	opacity: 0.7;
+	cursor: pointer;
+}
+.pod-toast-close:hover {
+	opacity: 1;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+	.pod-toast-wrap {
+		top: 64px;
+		right: 12px;
+	}
+	.pod-toast {
+		max-width: calc(100vw - 24px);
+	}
+}
+
+/* Indicators row */
+.pod-indicators {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	margin: 6px 0 4px;
+	flex-wrap: wrap;
+}
+
+/* Base chip */
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 12px;
+	padding: 6px 10px;
+	border-radius: 999px;
+	border: 1px solid rgba(15, 23, 42, 0.08);
+	background: #fff;
+	color: #0f172a;
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+.chip strong {
+	font-weight: 800;
+}
+.chip .fa {
+	opacity: 0.9;
+}
+.chip-label {
+	opacity: 0.9;
+}
+
+/* Variants */
+.chip-ok {
+	background: #f0fdf4; /* green-50 */
+	border-color: #bbf7d0; /* green-200 */
+	color: #065f46; /* green-800 */
+}
+.chip-warn {
+	background: #fff7ed; /* amber-50 */
+	border-color: #fed7aa; /* amber-200 */
+	color: #9a3412; /* amber-800 */
+}
+.chip-bad {
+	background: #fef2f2; /* red-50 */
+	border-color: #fecaca; /* red-200 */
+	color: #991b1b; /* red-800 */
+}

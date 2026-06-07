@@ -1,6 +1,7 @@
 import {
 	exchangeCodeAsync,
 	makeRedirectUri,
+	refreshAsync,
 	useAuthRequest,
 } from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
@@ -16,7 +17,6 @@ import {
 import { Config } from '@/services/config';
 import {
 	fetchCurrentUser,
-	fetchPodMemberForUser,
 	type PodMember,
 } from '@/services/servicenow';
 
@@ -38,6 +38,9 @@ const KEYS = {
 	EXPIRES_AT: 'sn_expires_at',
 } as const;
 
+// Refresh 60s before actual expiry to avoid races on slow networks
+const EXPIRY_BUFFER_MS = 60_000;
+
 export type Session = {
 	accessToken: string;
 	refreshToken?: string;
@@ -56,6 +59,28 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function persistTokens(
+	accessToken: string,
+	refreshToken: string | undefined,
+	expiresIn: number | undefined,
+): Promise<Session> {
+	const expiresAt = expiresIn ? Date.now() + expiresIn * 1000 : undefined;
+	await SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, accessToken);
+	if (refreshToken) {
+		await SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, refreshToken);
+	}
+	if (expiresAt) {
+		await SecureStore.setItemAsync(KEYS.EXPIRES_AT, String(expiresAt));
+	}
+	return { accessToken, refreshToken, expiresAt };
+}
+
+async function clearTokens(): Promise<void> {
+	await SecureStore.deleteItemAsync(KEYS.ACCESS_TOKEN);
+	await SecureStore.deleteItemAsync(KEYS.REFRESH_TOKEN);
+	await SecureStore.deleteItemAsync(KEYS.EXPIRES_AT);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [session, setSession] = useState<Session | null>(null);
 	const [podMember, setPodMember] = useState<PodMember | null>(null);
@@ -73,19 +98,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		DISCOVERY,
 	);
 
-	// Restore stored session on cold start
+	// Restore stored session on cold start; proactively refresh if expired
 	useEffect(() => {
 		async function restore() {
 			try {
 				const accessToken = await SecureStore.getItemAsync(KEYS.ACCESS_TOKEN);
 				const refreshToken = await SecureStore.getItemAsync(KEYS.REFRESH_TOKEN);
 				const expiresAtStr = await SecureStore.getItemAsync(KEYS.EXPIRES_AT);
-				if (accessToken) {
-					setSession({
-						accessToken,
-						refreshToken: refreshToken ?? undefined,
-						expiresAt: expiresAtStr ? parseInt(expiresAtStr, 10) : undefined,
-					});
+
+				if (!accessToken) return;
+
+				const expiresAt = expiresAtStr ? parseInt(expiresAtStr, 10) : undefined;
+				const isExpired =
+					expiresAt !== undefined && Date.now() >= expiresAt - EXPIRY_BUFFER_MS;
+
+				if (isExpired) {
+					if (refreshToken) {
+						try {
+							const tokenResponse = await refreshAsync(
+								{ clientId: Config.SN_OAUTH_CLIENT_ID, refreshToken },
+								{ tokenEndpoint: DISCOVERY.tokenEndpoint },
+							);
+							// Keep the old refresh token if the server doesn't rotate it
+							const newSession = await persistTokens(
+								tokenResponse.accessToken,
+								tokenResponse.refreshToken ?? refreshToken,
+								tokenResponse.expiresIn,
+							);
+							setSession(newSession);
+						} catch {
+							// Refresh token itself is expired or revoked — force re-login
+							await clearTokens();
+						}
+					} else {
+						// Expired and no refresh token — force re-login
+						await clearTokens();
+					}
+				} else {
+					setSession({ accessToken, refreshToken: refreshToken ?? undefined, expiresAt });
 				}
 			} finally {
 				setIsLoading(false);
@@ -120,22 +170,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			{ tokenEndpoint: DISCOVERY.tokenEndpoint },
 		)
 			.then(async (tokenResponse) => {
-				const { accessToken, refreshToken, expiresIn } = tokenResponse;
-				const expiresAt = expiresIn ? Date.now() + expiresIn * 1000 : undefined;
-
-				await SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, accessToken);
-				if (refreshToken) {
-					await SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, refreshToken);
-				}
-				if (expiresAt) {
-					await SecureStore.setItemAsync(KEYS.EXPIRES_AT, String(expiresAt));
-				}
-
-				setSession({
-					accessToken,
-					refreshToken: refreshToken ?? undefined,
-					expiresAt,
-				});
+				const newSession = await persistTokens(
+					tokenResponse.accessToken,
+					tokenResponse.refreshToken,
+					tokenResponse.expiresIn,
+				);
+				setSession(newSession);
 			})
 			.catch((e: unknown) => {
 				setAuthError(
@@ -153,8 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		if (podMember) return; // already resolved for this session
 		setIsResolvingIdentity(true);
 		fetchCurrentUser(session.accessToken)
-			.then((user) => fetchPodMemberForUser(session.accessToken, user.sys_id).then((pm) => ({ user, pm })))
-			.then(({ user, pm }) => setPodMember({ ...pm, email: user.email }))
+			.then((user) => setPodMember({ sysId: user.sys_id, displayName: user.name, email: user.email }))
 			.catch((e: unknown) =>
 				setAuthError(e instanceof Error ? e.message : 'Could not load your pod profile.')
 			)
@@ -166,13 +205,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		promptAsync();
 	}, [promptAsync]);
 
-	async function signOut() {
-		await SecureStore.deleteItemAsync(KEYS.ACCESS_TOKEN);
-		await SecureStore.deleteItemAsync(KEYS.REFRESH_TOKEN);
-		await SecureStore.deleteItemAsync(KEYS.EXPIRES_AT);
+	const signOut = useCallback(async () => {
+		await clearTokens();
 		setSession(null);
 		setPodMember(null);
-	}
+	}, []);
 
 	return (
 		<AuthContext.Provider value={{ session, podMember, isLoading, isResolvingIdentity, authError, startOAuth, signOut }}>

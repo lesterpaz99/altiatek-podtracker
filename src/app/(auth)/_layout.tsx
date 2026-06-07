@@ -1,16 +1,14 @@
-import { Stack, useRouter } from 'expo-router';
-import { useEffect } from 'react';
-
+import { Redirect, Stack } from 'expo-router';
 import { useAuth } from '@/context/auth-context';
 
 export default function AuthLayout() {
   const { session, isLoading } = useAuth();
-  const router = useRouter();
 
-  useEffect(() => {
-    if (isLoading) return;
-    if (session) router.replace('/(app)/today');
-  }, [session, isLoading]);
+  if (isLoading) return null;
+
+  // Already authenticated — send to app; use Redirect (not useEffect) so
+  // expo-router handles this synchronously without needing a mounted Stack
+  if (session) return <Redirect href='/(app)/today' />;
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }

@@ -1,0 +1,364 @@
+<div class="pod-daily-status">
+	<!-- Header -->
+	<div class="header-row">
+		<div>
+			<div class="status-header">
+				<h3 class="greeting">{{ c.greeting }}</h3>
+				<h5 class="date">{{ c.formattedDate }}</h5>
+			</div>
+		</div>
+
+		<div class="header-actions">
+			<span
+				class="badge"
+				ng-class="{'ok': data.hasToday, 'warn': !data.hasToday}"
+			>
+				<i
+					class="fa"
+					ng-class="{'fa-check': data.hasToday, 'fa-exclamation': !data.hasToday}"
+				></i>
+				{{ data.hasToday ? 'Status exists for today' : 'No status yet for today'
+				}}
+			</span>
+
+			<button
+				class="btn btn-primary btn-rounded"
+				ng-if="!data.hasToday"
+				ng-click="c.createToday()"
+				ng-disabled="c.loading"
+			>
+				<i class="fa fa-plus"></i> Create status for today
+			</button>
+
+			<button
+				class="btn btn-default btn-rounded"
+				ng-if="data.status && data.status.sys_id"
+				ng-click="c.openNewLineModal()"
+				ng-disabled="c.loading"
+			>
+				<i class="fa fa-sticky-note-o"></i> Add status line
+			</button>
+		</div>
+	</div>
+
+	<!-- Indicators (under date) -->
+	<div class="pod-indicators" ng-if="data.hasToday">
+		<!-- Needs attention -->
+		<span class="chip" ng-class="c.metrics.needsClass">
+			<i class="fa fa-exclamation-circle"></i>
+			<strong>{{ c.metrics.needs }}</strong>
+			<span class="chip-label">
+				{{ c.metrics.needs === 1 ? 'line needs attention' : 'lines need
+				attention' }}
+			</span>
+		</span>
+
+		<!-- Utilization -->
+		<span class="chip" ng-class="c.metrics.utilClass">
+			<i class="fa fa-percent"></i>
+			<span class="chip-label">Utilization</span>
+			<strong>{{ c.metrics.util }}%</strong>
+		</span>
+	</div>
+
+	<!-- Alerts -->
+	<div class="alert alert-danger" ng-if="data.error">
+		<i class="fa fa-exclamation-triangle"></i> {{data.error}}
+	</div>
+
+	<!-- Toast (top-right, below header) -->
+	<div class="pod-toast-wrap">
+		<div
+			class="pod-toast pod-toast--success"
+			ng-if="data.message"
+			role="status"
+			aria-live="polite"
+		>
+			<i class="fa fa-check"></i>
+			<div class="pod-toast-body">
+				<div class="pod-toast-title">Success</div>
+				<div class="pod-toast-text">{{ data.message }}</div>
+			</div>
+			<button
+				class="pod-toast-close"
+				ng-click="data.message = null"
+				aria-label="Dismiss"
+			>
+				&times;
+			</button>
+		</div>
+	</div>
+
+	<!-- Empty state -->
+	<div
+		class="empty"
+		ng-if="data.hasToday && (!data.lines || data.lines.length === 0)"
+	>
+		<div class="empty-card">
+			<i class="fa fa-sticky-note-o"></i>
+			<div>No status lines yet</div>
+			<button
+				class="btn btn-primary btn-rounded"
+				ng-click="c.openNewLineModal()"
+			>
+				<i class="fa fa-plus"></i> Add your first line
+			</button>
+		</div>
+	</div>
+
+	<!-- Cards -->
+	<div class="cards" ng-if="data.hasToday && data.lines.length">
+		<div
+			class="line-card"
+			ng-repeat="ln in data.lines track by ln.sys_id"
+			ng-click="c.openEditLine(ln)"
+			ng-class="{'needs-info': ln.needsInfo}"
+		>
+			<div class="line-header">
+				<div class="line-title">
+					<span
+						class="pill"
+						ng-class="{
+            'state-open': ln.state=='open',
+            'state-wip': ln.state=='in_progress',
+            'state-done': ln.state=='completed'
+          }"
+						>{{ ln.state_label || ln.state || '—' }}</span
+					>
+
+					<strong
+						>{{ ln.assignment || ln.work_item || ln.assignment_name ||
+						'Untitled' }}</strong
+					>
+					<small ng-if="ln.assignment_type_label || ln.assignment_type">
+						· {{ ln.assignment_type_label || ln.assignment_type }}</small
+					>
+
+					<span class="free-badge" ng-if="ln.no_task">No task</span>
+					<span class="info-badge" ng-if="ln.blocked">Blocked</span>
+					<span class="info-badge" ng-if="ln.ext_dep">External dependency</span>
+					<span class="info-badge" ng-if="ln.at_risk">At risk</span>
+					<span class="info-badge" ng-if="ln.needs_help">Needs help</span>
+					<span class="need-badge" ng-if="ln.needsInfo">Needs information</span>
+				</div>
+
+				<button
+					class="icon-btn"
+					ng-click="$event.stopPropagation(); c.openEditLine(ln)"
+				>
+					<i class="fa fa-pencil"></i>
+				</button>
+			</div>
+
+			<div class="line-body">
+				<div class="kv" ng-if="ln.current_focus">
+					<span>Focus</span>
+					<p>{{ ln.current_focus }}</p>
+				</div>
+				<div class="kv" ng-if="ln.notes">
+					<span>Notes / Next Steps</span>
+					<p>{{ ln.notes }}</p>
+				</div>
+
+				<div class="meta">
+					<div ng-if="ln.percent">
+						<i class="fa fa-clock-o"></i> {{ln.percent}}% effort
+					</div>
+					<div ng-if="ln.blocker_age_days">
+						<i class="fa fa-hourglass-half"></i> Blocker age:
+						{{ln.blocker_age_days}}d
+					</div>
+					<div ng-if="ln.target_date">
+						<i class="fa fa-calendar"></i> Target: {{ln.target_date}}
+					</div>
+					<div ng-if="ln.sla_status">
+						<i class="fa fa-bolt"></i> SLA: {{ln.sla_status}}
+					</div>
+					<div ng-if="ln.team">
+						<i class="fa fa-users"></i> Team: {{ln.team}}
+					</div>
+					<div ng-if="ln.pod"><i class="fa fa-cubes"></i> Pod: {{ln.pod}}</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Add-new card (shows when a status exists) -->
+		<div
+			class="line-card add-card add-line-card"
+			ng-if="data.status && data.status.sys_id"
+			ng-click="c.openNewLineModal()"
+		>
+			<div class="add-card-inner">
+				<div class="add-plus">+</div>
+				<div class="add-text">
+					<div class="add-title">Add status line</div>
+					<div class="add-hint">Capture today’s work item, task, or notes</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Modal template (Add/Edit) -->
+	<script type="text/ng-template" id="newLineModal.tpl">
+		    <div class="modal-header">
+		      <h4 class="modal-title">{{ m.isEdit ? 'Edit Status Line' : 'Add Status Line' }}</h4>
+		    </div>
+		    <div class="modal-body">
+		      <div class="form-grid">
+
+		        <!-- Assignment (Task or Free Text) -->
+		        <div class="form-group"
+		             ng-class="{
+		               'has-error': (!m.form.no_task && m.submitAttempted && !(m.assignmentField && m.assignmentField.value))
+		                            || (m.form.no_task && m.submitAttempted && !m.form.assignment_name)
+		             }">
+		          <label>Assignment <span class="req">*</span></label>
+
+		          <!-- Picker when NOT no_task -->
+		          <div ng-if="!m.form.no_task">
+		            <sn-record-picker
+		              table="'task'"
+		              value-field="'sys_id'"
+		              display-field="'number'"
+		              display-fields="'short_description'"
+		              search-fields="'number,short_description'"
+		              page-size="50"
+		              field="m.assignmentField"
+		              placeholder="'Search task…'"
+		              ng-disabled="m.isEdit"
+		              ng-readonly="m.isEdit">
+		            </sn-record-picker>
+		            <div class="help-block"
+		                 ng-if="m.submitAttempted && !(m.assignmentField && m.assignmentField.value)">
+		              Please select a task.
+		            </div>
+		          </div>
+
+		          <!-- Free text when no_task -->
+		          <div ng-if="m.form.no_task">
+		            <input type="text"
+		                   class="form-control"
+		                   ng-model="m.form.assignment_name"
+		                   ng-readonly="m.isEdit"
+		                   placeholder="Describe the work item (e.g., Onboarding plan)"
+		                   ng-required="true" maxlength="64">
+		            <p class="help-block" ng-if="!m.isEdit">Free text mode. This won’t link to a Task.</p>
+		            <div class="help-block" ng-if="m.submitAttempted && !m.form.assignment_name">
+		              Please enter an assignment name.
+		            </div>
+		          </div>
+
+		          <!-- No task toggle -->
+		          <div class="no-task-toggle">
+		            <label class="toggle">
+		              <input type="checkbox"
+		                     ng-model="m.form.no_task"
+		                     ng-change="m.onToggleNoTask()"
+		                     ng-disabled="!m.canToggleNoTask">
+		              <span>No task?</span>
+		              <span class="muted" ng-if="!m.canToggleNoTask"> (fixed on edit)</span>
+		            </label>
+		          </div>
+		        </div>
+
+		        <div class="form-group" ng-class="{'has-error': m.submitAttempted && !m.form.current_focus}">
+		          <label>Current focus <span class="req">*</span></label>
+		          <textarea class="form-control" ng-model="m.form.current_focus" rows="2" ng-required="true" maxlength="500"></textarea>
+		          <div class="help-block" ng-if="m.submitAttempted && !m.form.current_focus">
+		            Please enter the current focus.
+		          </div>
+		        </div>
+
+		        <div class="form-group" ng-class="{'has-error': m.submitAttempted && !m.form.work_item}">
+		          <label>Work item name <span class="req">*</span></label>
+		          <input type="text" class="form-control" ng-model="m.form.work_item" placeholder="e.g., Backend refactor" ng-required="true">
+		          <div class="help-block" ng-if="m.submitAttempted && !m.form.work_item">
+		            Please enter the work item name.
+		          </div>
+		        </div>
+
+		        <div class="form-row">
+		          <div class="form-group half">
+		            <label>Assignment type</label>
+		            <select class="form-control"
+		                    ng-model="m.form.assignment_type"
+		                    ng-options="o.value as o.label for o in m.choices.assignment_type">
+		              <option value="">—</option>
+		            </select>
+		          </div>
+		          <div class="form-group half">
+		            <label>State</label>
+		            <select class="form-control"
+		                    ng-model="m.form.state"
+		                    ng-options="o.value as o.label for o in m.choices.state">
+		              <option value="">—</option>
+		            </select>
+		          </div>
+		        </div>
+
+		        <!-- Checkboxes in required order -->
+		        <div class="form-row">
+		          <div class="form-group third">
+		            <label class="toggle"><input type="checkbox" ng-model="m.form.at_risk"> <span>At risk</span></label>
+		          </div>
+		          <div class="form-group third">
+		            <label class="toggle"><input type="checkbox" ng-model="m.form.needs_help"> <span>Needs help</span></label>
+		          </div>
+		          <div class="form-group third">
+		            <label class="toggle"><input type="checkbox" ng-model="m.form.blocked"> <span>Blocked</span></label>
+
+		            <!-- Dependent fields appear only when Blocked is checked -->
+		            <div class="blocked-deps" ng-if="m.form.blocked">
+		              <div class="dep-item">
+		                <label class="toggle"><input type="checkbox" ng-model="m.form.ext_dep"> <span>External dependency</span></label>
+		              </div>
+		              <div class="dep-item">
+		                <label>Blocker age (days)</label>
+		                <input type="number" class="form-control" ng-model="m.form.blocker_age_days" min="0">
+		              </div>
+		            </div>
+		          </div>
+		        </div>
+
+		        <div class="form-row">
+		          <div class="form-group third" ng-class="{'has-error': m.submitAttempted && !m.form.target_date}">
+		            <label>Target date <span class="req">*</span></label>
+		            <input type="date" class="form-control" ng-model="m.form.target_date" ng-required="true">
+		            <div class="help-block" ng-if="m.submitAttempted && !m.form.target_date">
+		              Please select a target date.
+		            </div>
+		          </div>
+
+		          <div class="form-group third" ng-class="{'has-error': m.submitAttempted && (m.form.percent===null || m.form.percent===undefined || m.form.percent==='')}">
+		            <label>Effort % <span class="req">*</span></label>
+		            <select class="form-control"
+		                    ng-model="m.form.percent"
+		                    ng-options="p as (p + '%') for p in m.percentOptions"
+		                    ng-required="true">
+		              <option value="">—</option>
+		            </select>
+		            <div class="help-block" ng-if="m.submitAttempted && (m.form.percent===null || m.form.percent===undefined || m.form.percent==='')">
+		              Please choose an effort percentage.
+		            </div>
+		          </div>
+
+		          <div class="form-group third" ng-class="{'has-error': m.submitAttempted && !m.form.notes}">
+		            <label>Notes / Next Steps <span class="req">*</span></label>
+		            <textarea class="form-control" ng-model="m.form.notes" rows="3" ng-required="true" maxlength="2000"></textarea>
+		            <div class="help-block" ng-if="m.submitAttempted && !m.form.notes">
+		              Please enter notes / next steps.
+		            </div>
+		          </div>
+		        </div>
+
+		      </div>
+		    </div>
+
+		    <div class="modal-footer">
+		  <button type="button" class="btn btn-default" ng-click="m.cancel()">Cancel</button>
+		  <button type="button" class="btn btn-primary" ng-click="m.ok()">
+		    {{ m.isEdit ? 'Save changes' : 'Add line' }}
+		  </button>
+		</div>
+	</script>
+</div>
