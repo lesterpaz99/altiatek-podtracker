@@ -66,9 +66,9 @@ export type SysUser = {
 
 // u_pod_member on status tables is a direct reference to sys_user, not a custom table
 export type PodMember = {
-	sysId: string;       // sys_user.sys_id
+	sysId: string; // sys_user.sys_id
 	displayName: string; // sys_user.name
-	email: string;       // sys_user.email
+	email: string; // sys_user.email
 };
 
 export type PodMemberStatus = {
@@ -94,7 +94,6 @@ export async function fetchCurrentUser(accessToken: string): Promise<SysUser> {
 	return data.result[0];
 }
 
-
 export type StatusLine = {
 	sys_id: string;
 	u_item_name: string;
@@ -115,7 +114,7 @@ export type StatusLine = {
 // Returns the single header record for today, or null if none exists yet
 export async function fetchTodayHeader(
 	accessToken: string,
-	userSysId: string,
+	userSysId: string
 ): Promise<PodMemberStatus | null> {
 	const data = await snFetch<{ result: PodMemberStatus[] }>(
 		accessToken,
@@ -132,17 +131,102 @@ export async function fetchTodayHeader(
 
 export async function fetchStatusLines(
 	accessToken: string,
-	headerSysId: string,
+	headerSysId: string
 ): Promise<StatusLine[]> {
 	const data = await snFetch<{ result: StatusLine[] }>(
 		accessToken,
 		'/api/now/table/u_pod_status_line',
 		{
 			sysparm_query: `u_parent=${headerSysId}`,
-			sysparm_fields: 'sys_id,u_item_name,u_current_focus,u_state,u_assignment_type,u_assignment,u_no_task,u_assignment_name,u_at_risk,u_needs_help,u_blocked,u_target_date,u_time_percent,u_notes',
+			sysparm_fields:
+				'sys_id,u_item_name,u_current_focus,u_state,u_assignment_type,u_assignment,u_no_task,u_assignment_name,u_at_risk,u_needs_help,u_blocked,u_target_date,u_time_percent,u_notes',
 			sysparm_display_value: 'true',
 			sysparm_limit: '50',
 		}
 	);
 	return data.result;
+}
+
+export type TaskResult = {
+	sys_id: string;
+	number: string;
+	short_description: string;
+	sys_class_name: string;
+};
+
+export async function searchTasks(
+	accessToken: string,
+	query: string
+): Promise<TaskResult[]> {
+	const data = await snFetch<{ result: TaskResult[] }>(
+		accessToken,
+		'/api/now/table/task',
+		{
+			sysparm_query: `numberLIKE${query}^ORshort_descriptionLIKE${query}^active=true`,
+			sysparm_fields: 'sys_id,number,short_description,sys_class_name',
+			sysparm_limit: '20',
+		}
+	);
+	return data.result;
+}
+
+export type CreateStatusLineBody = {
+	u_parent: string;
+	u_no_task: boolean;
+	u_assignment?: string;
+	u_assignment_name?: string;
+	u_current_focus: string;
+	u_item_name: string;
+	u_assignment_type: string;
+	u_state: string;
+	u_at_risk: boolean;
+	u_needs_help: boolean;
+	u_blocked: boolean;
+	u_target_date: string;
+	u_time_percent: number;
+	u_notes: string;
+};
+
+export async function createStatusLine(
+	accessToken: string,
+	body: CreateStatusLineBody
+): Promise<StatusLine> {
+	const url = new URL(
+		`${Config.SERVICENOW_BASE_URL}/api/now/table/u_pod_status_line`
+	);
+
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+	try {
+		const res = await fetch(url.toString(), {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(body),
+			signal: controller.signal,
+		});
+
+		if (!res.ok) {
+			const text = await readErrorBody(res);
+			throw new Error(
+				text
+					? `ServiceNow ${res.status}: ${text}`
+					: `ServiceNow request failed with status ${res.status}.`
+			);
+		}
+
+		const data = (await res.json()) as { result: StatusLine };
+		return data.result;
+	} catch (error) {
+		if (error instanceof Error && error.name === 'AbortError') {
+			throw new Error('ServiceNow did not respond. Please try again.');
+		}
+		throw error;
+	} finally {
+		clearTimeout(timeout);
+	}
 }
