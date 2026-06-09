@@ -133,18 +133,55 @@ export async function fetchStatusLines(
 	accessToken: string,
 	headerSysId: string
 ): Promise<StatusLine[]> {
-	const data = await snFetch<{ result: StatusLine[] }>(
+	type RawRef = { value: string; display_value: string };
+	type RawField = string | number | RawRef;
+	type RawLine = Record<string, RawField>;
+
+	const data = await snFetch<{ result: RawLine[] }>(
 		accessToken,
 		'/api/now/table/u_pod_status_line',
 		{
 			sysparm_query: `u_parent=${headerSysId}`,
 			sysparm_fields:
 				'sys_id,u_item_name,u_current_focus,u_state,u_assignment_type,u_assignment,u_no_task,u_assignment_name,u_at_risk,u_needs_help,u_blocked,u_target_date,u_time_percent,u_notes',
-			sysparm_display_value: 'true',
+			// 'all' returns {value, display_value} objects for every field so that
+			// choice fields give internal codes (needed for ChipSelector matching)
+			// and reference fields give both sys_id and display name.
+			sysparm_display_value: 'all',
 			sysparm_limit: '50',
 		}
 	);
-	return data.result;
+
+	function str(f: RawField | undefined): string {
+		if (f == null) return '';
+		if (typeof f === 'object') return String(f.value ?? '');
+		return String(f);
+	}
+
+	function ref(f: RawField | undefined): { value: string; display_value: string } {
+		if (f != null && typeof f === 'object') {
+			return { value: String(f.value ?? ''), display_value: String(f.display_value ?? '') };
+		}
+		const s = f != null ? String(f) : '';
+		return { value: s, display_value: s };
+	}
+
+	return data.result.map((r) => ({
+		sys_id: str(r.sys_id),
+		u_item_name: str(r.u_item_name),
+		u_current_focus: str(r.u_current_focus),
+		u_state: str(r.u_state),
+		u_assignment_type: str(r.u_assignment_type),
+		u_assignment: ref(r.u_assignment),
+		u_no_task: str(r.u_no_task),
+		u_assignment_name: str(r.u_assignment_name),
+		u_at_risk: str(r.u_at_risk),
+		u_needs_help: str(r.u_needs_help),
+		u_blocked: str(r.u_blocked),
+		u_target_date: str(r.u_target_date),
+		u_time_percent: str(r.u_time_percent),
+		u_notes: str(r.u_notes),
+	}));
 }
 
 export type TaskResult = {
@@ -186,6 +223,113 @@ export type CreateStatusLineBody = {
 	u_time_percent: number;
 	u_notes: string;
 };
+
+export async function createTodayHeader(
+	accessToken: string,
+	podMemberSysId: string
+): Promise<PodMemberStatus> {
+	const today = new Date().toISOString().split('T')[0];
+	const url = new URL(
+		`${Config.SERVICENOW_BASE_URL}/api/now/table/u_pod_member_status`
+	);
+	url.searchParams.set('sysparm_display_value', 'true');
+
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+	try {
+		const res = await fetch(url.toString(), {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ u_pod_member: podMemberSysId, u_date: today }),
+			signal: controller.signal,
+		});
+
+		if (!res.ok) {
+			const text = await readErrorBody(res);
+			throw new Error(
+				text
+					? `ServiceNow ${res.status}: ${text}`
+					: `ServiceNow request failed with status ${res.status}.`
+			);
+		}
+
+		const data = (await res.json()) as { result: PodMemberStatus };
+		return data.result;
+	} catch (error) {
+		if (error instanceof Error && error.name === 'AbortError') {
+			throw new Error('ServiceNow did not respond. Please try again.');
+		}
+		throw error;
+	} finally {
+		clearTimeout(timeout);
+	}
+}
+
+export type UpdateStatusLineBody = {
+	u_no_task: boolean;
+	u_assignment?: string;
+	u_assignment_name?: string;
+	u_current_focus: string;
+	u_item_name: string;
+	u_assignment_type: string;
+	u_state: string;
+	u_at_risk: boolean;
+	u_needs_help: boolean;
+	u_blocked: boolean;
+	u_target_date: string;
+	u_time_percent: number;
+	u_notes: string;
+};
+
+export async function updateStatusLine(
+	accessToken: string,
+	sysId: string,
+	body: UpdateStatusLineBody
+): Promise<StatusLine> {
+	const url = new URL(
+		`${Config.SERVICENOW_BASE_URL}/api/now/table/u_pod_status_line/${sysId}`
+	);
+
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+	try {
+		const res = await fetch(url.toString(), {
+			method: 'PATCH',
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(body),
+			signal: controller.signal,
+		});
+
+		if (!res.ok) {
+			const text = await readErrorBody(res);
+			throw new Error(
+				text
+					? `ServiceNow ${res.status}: ${text}`
+					: `ServiceNow request failed with status ${res.status}.`
+			);
+		}
+
+		const data = (await res.json()) as { result: StatusLine };
+		return data.result;
+	} catch (error) {
+		if (error instanceof Error && error.name === 'AbortError') {
+			throw new Error('ServiceNow did not respond. Please try again.');
+		}
+		throw error;
+	} finally {
+		clearTimeout(timeout);
+	}
+}
 
 export async function createStatusLine(
 	accessToken: string,

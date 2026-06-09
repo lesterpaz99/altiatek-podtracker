@@ -4,6 +4,7 @@ import {
 	FlatList,
 	StyleSheet,
 	TouchableOpacity,
+	View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -19,11 +20,13 @@ import { UtilizationCard } from '@/components/utilization-card';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import {
+	createTodayHeader,
 	fetchStatusLines,
 	fetchTodayHeader,
 	type PodMemberStatus,
 	type StatusLine,
 } from '@/services/servicenow';
+import { useTheme } from '@/hooks/use-theme';
 
 type ModalState =
 	| { open: false }
@@ -35,8 +38,10 @@ export default function TodayScreen() {
 	const [header, setHeader] = useState<PodMemberStatus | null>(null);
 	const [lines, setLines] = useState<StatusLine[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [starting, setStarting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [modal, setModal] = useState<ModalState>({ open: false });
+	const theme = useTheme();
 
 	const needsCount = lines.filter(
 		(l) =>
@@ -82,6 +87,22 @@ export default function TodayScreen() {
 		loadData();
 	}
 
+	async function handleStartToday() {
+		if (!session || !podMember) return;
+		setStarting(true);
+		setError(null);
+		try {
+			const hdr = await createTodayHeader(session.accessToken, podMember.sysId);
+			setHeader(hdr);
+			const lns = await fetchStatusLines(session.accessToken, hdr.sys_id);
+			setLines(lns);
+		} catch (e: unknown) {
+			setError(e instanceof Error ? e.message : String(e));
+		} finally {
+			setStarting(false);
+		}
+	}
+
 	return (
 		<ThemedView style={styles.container}>
 			<SafeAreaView style={styles.safe}>
@@ -98,6 +119,43 @@ export default function TodayScreen() {
 					<ThemedText type='small' style={styles.error}>
 						{error}
 					</ThemedText>
+				)}
+
+				{!loading && !header && (
+					<View style={styles.noHeaderState}>
+						<ThemedText style={[styles.noHeaderIcon, { color: theme.textTertiary }]}>
+							⬡
+						</ThemedText>
+						<ThemedText style={[styles.noHeaderTitle, { color: theme.text }]}>
+							No status for today yet
+						</ThemedText>
+						<ThemedText
+							type='small'
+							style={[styles.noHeaderSubtitle, { color: theme.textSecondary }]}
+						>
+							Start today's status — yesterday's items will carry over automatically.
+						</ThemedText>
+						<TouchableOpacity
+							style={[
+								styles.startBtn,
+								{ backgroundColor: theme.accent },
+								starting && { opacity: 0.6 },
+							]}
+							onPress={handleStartToday}
+							activeOpacity={0.8}
+							disabled={starting}
+						>
+							{starting ? (
+								<ActivityIndicator color={theme.accentForeground} />
+							) : (
+								<ThemedText
+									style={[styles.startBtnLabel, { color: theme.accentForeground }]}
+								>
+									Start today's status
+								</ThemedText>
+							)}
+						</TouchableOpacity>
+					</View>
 				)}
 
 				{!loading && header && lines.length > 0 && (
@@ -150,4 +208,37 @@ const styles = StyleSheet.create({
 	spinner: { marginTop: Spacing.five },
 	error: { color: '#FF3B30', marginTop: Spacing.three },
 	list: { gap: Spacing.two, paddingBottom: Spacing.four, paddingTop: Spacing.two },
+	noHeaderState: {
+		flex: 1,
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: Spacing.one,
+		paddingHorizontal: Spacing.five,
+	},
+	noHeaderIcon: {
+		fontSize: 36,
+		marginBottom: Spacing.two,
+	},
+	noHeaderTitle: {
+		fontSize: 17,
+		fontWeight: '600',
+		letterSpacing: -0.2,
+	},
+	noHeaderSubtitle: {
+		textAlign: 'center',
+		marginTop: Spacing.one,
+	},
+	startBtn: {
+		marginTop: Spacing.three,
+		borderRadius: 999,
+		paddingVertical: 14,
+		paddingHorizontal: Spacing.five,
+		minWidth: 200,
+		alignItems: 'center',
+	},
+	startBtnLabel: {
+		fontSize: 16,
+		fontWeight: '600',
+		letterSpacing: -0.2,
+	},
 });

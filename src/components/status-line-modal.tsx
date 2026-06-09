@@ -22,6 +22,7 @@ import { CardRadius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import {
 	createStatusLine,
+	updateStatusLine,
 	searchTasks,
 	type StatusLine,
 	type TaskResult,
@@ -563,24 +564,30 @@ export function StatusLineModal({
 		if (!isValid || submitting) return;
 		setSubmitting(true);
 		setError(null);
+
+		const lineFields = {
+			u_no_task: form.noTask,
+			...(form.noTask
+				? { u_assignment_name: form.assignmentName }
+				: { u_assignment: form.taskSysId }),
+			u_current_focus: form.currentFocus,
+			u_item_name: form.itemName,
+			u_assignment_type: form.assignmentType,
+			u_state: form.state,
+			u_at_risk: form.atRisk,
+			u_needs_help: form.needsHelp,
+			u_blocked: form.blocked,
+			u_target_date: form.targetDate,
+			u_time_percent: parseInt(form.timePercent, 10),
+			u_notes: form.notes,
+		};
+
 		try {
-			await createStatusLine(accessToken, {
-				u_parent: parentSysId,
-				u_no_task: form.noTask,
-				...(form.noTask
-					? { u_assignment_name: form.assignmentName }
-					: { u_assignment: form.taskSysId }),
-				u_current_focus: form.currentFocus,
-				u_item_name: form.itemName,
-				u_assignment_type: form.assignmentType,
-				u_state: form.state,
-				u_at_risk: form.atRisk,
-				u_needs_help: form.needsHelp,
-				u_blocked: form.blocked,
-				u_target_date: form.targetDate,
-				u_time_percent: parseInt(form.timePercent, 10),
-				u_notes: form.notes,
-			});
+			if (mode === 'edit' && item) {
+				await updateStatusLine(accessToken, item.sys_id, lineFields);
+			} else {
+				await createStatusLine(accessToken, { u_parent: parentSysId, ...lineFields });
+			}
 			onSuccess();
 			onClose();
 		} catch (e) {
